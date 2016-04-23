@@ -1,5 +1,8 @@
-# consistent
+# Consistent
 Consistent hash package for Go.
 
+# Install
+go get github.com/catlittlechen/consistent
+
 # Examples
-Look [Here](./example/example.go).
+Look at [Here](./example/example.go).
