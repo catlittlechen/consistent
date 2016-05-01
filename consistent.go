@@ -14,19 +14,21 @@ var (
 	ErrWrongWeight      = errors.New("weight must be larger than 0")
 )
 
-var globalVirtualNumber = 10
+const defaultVirtualNumber = 10
 
 type circle struct {
-	circle []uint32
-	count  int
-	cap    int
+	virtualNumber int
+	circle        []uint32
+	count         int
+	cap           int
 }
 
-func newCircle() circle {
+func newCircle(virtualNumber int) circle {
 	c := circle{
-		circle: make([]uint32, globalVirtualNumber),
-		count:  0,
-		cap:    globalVirtualNumber,
+		virtualNumber: virtualNumber,
+		circle:        make([]uint32, virtualNumber),
+		count:         0,
+		cap:           virtualNumber,
 	}
 
 	return c
@@ -45,9 +47,9 @@ func (c *circle) clear() {
 
 func (c *circle) addMember(key uint32) {
 	if c.count >= c.cap {
-		keys := make([]uint32, globalVirtualNumber)
+		keys := make([]uint32, c.virtualNumber)
 		c.circle = append(c.circle, keys...)
-		c.cap += globalVirtualNumber
+		c.cap += c.virtualNumber
 	}
 
 	c.circle[c.count] = key
@@ -72,25 +74,27 @@ func (c *circle) search(key uint32) uint32 {
 type Consistent struct {
 	sync.RWMutex
 
-	mapMembers map[string]int
-	mapHashKey map[uint32]string
-	circle     circle
+	virtualNumber int
+	mapMembers    map[string]int
+	mapHashKey    map[uint32]string
+	circle        circle
 }
 
 func DefaultNew() (c *Consistent) {
 	c = new(Consistent)
+	c.virtualNumber = defaultVirtualNumber
 	c.mapMembers = make(map[string]int)
 	c.mapHashKey = make(map[uint32]string)
-	c.circle = newCircle()
+	c.circle = newCircle(c.virtualNumber)
 	return
 }
 
 func New(virtualNumber int) (c *Consistent) {
 	c = new(Consistent)
-	globalVirtualNumber = virtualNumber
+	c.virtualNumber = virtualNumber
 	c.mapMembers = make(map[string]int)
 	c.mapHashKey = make(map[uint32]string)
-	c.circle = newCircle()
+	c.circle = newCircle(c.virtualNumber)
 	return
 }
 
@@ -115,7 +119,7 @@ func (c *Consistent) Add(serverID string, weight int) (err error) {
 	c.mapMembers[serverID] = weight
 
 	var key uint32
-	virtualNumber := globalVirtualNumber * weight
+	virtualNumber := c.virtualNumber * weight
 	for i := 0; i < virtualNumber; i++ {
 		key = c.hashKey(c.generateKey(serverID, i))
 		c.mapHashKey[key] = serverID
@@ -142,7 +146,7 @@ func (c *Consistent) Del(serverID string) (err error) {
 	}
 	delete(c.mapMembers, serverID)
 
-	virtualNumber := globalVirtualNumber * c.mapMembers[serverID]
+	virtualNumber := c.virtualNumber * c.mapMembers[serverID]
 	for i := 0; i < virtualNumber; i++ {
 		delete(c.mapHashKey, c.hashKey(c.generateKey(serverID, i)))
 	}
