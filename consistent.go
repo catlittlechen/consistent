@@ -103,7 +103,7 @@ func (c *Consistent) hashKey(key string) uint32 {
 }
 
 func (c *Consistent) generateKey(serverID string, id int) string {
-	return serverID + strconv.Itoa(id)
+	return strconv.Itoa(id) + serverID
 }
 
 func (c *Consistent) Add(serverID string, weight int) (err error) {
